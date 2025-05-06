@@ -40,6 +40,14 @@ class Settings(BaseSettings):
     smtp_port: int = Field(default=2525, description="SMTP port for sending emails")
     smtp_username: str = Field(default='your-mailtrap-username', description="Username for SMTP server")
     smtp_password: str = Field(default='your-mailtrap-password', description="Password for SMTP server")
+    # Minio settings for storing profile pic
+    # MinIO settings for storing profile pictures
+    minio_host: str = Field(default='localhost:9000', description="MinIO host")
+    minio_access_key: str = Field(default='minioadmin', description="Access key for MinIO server")
+    minio_secret_key: str = Field(default='minioadmin', description="Secret key for MinIO server")
+    minio_bucket_name: str = Field(default='profile-pics', description="Bucket name for storing profile pictures")
+    minio_url: str = Field(default='http://localhost:9000', description="Public URL base for accessing stored pictures")
+
 
 
     class Config:
