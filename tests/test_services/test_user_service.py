@@ -30,6 +30,20 @@ async def test_create_user_with_invalid_data(db_session, email_service):
     user = await UserService.create(db_session, user_data, email_service)
     assert user is None
 
+@pytest.mark.asyncio
+async def test_create_user_sends_verification_email(db_session, email_service):
+    # Arrange
+    user_data = {
+        "nickname": generate_nickname(),
+        "email": "valid_user@example.com",
+        "password": "ValidPassword123!",
+        "role": UserRole.ANONYMOUS.name
+    }
+
+    user = await UserService.create(db_session, user_data, email_service)
+    assert user is not None
+    email_service.send_verification_email.assert_awaited_once_with(user)
+
 # Test fetching a user by ID when the user exists
 async def test_get_by_id_user_exists(db_session, user):
     retrieved_user = await UserService.get_by_id(db_session, user.id)
