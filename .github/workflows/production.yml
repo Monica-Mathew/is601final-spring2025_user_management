@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - develop
+      - 1-docker-container-not-starting-properly
   pull_request:
     branches:
       - main
