@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import Database
 from app.utils.template_manager import TemplateManager
 from app.services.email_service import EmailService
+from app.services.minio_service import MinioService
 from app.services.jwt_service import decode_token
 from settings.config import Settings
 from fastapi import Depends
@@ -16,6 +17,9 @@ def get_settings() -> Settings:
 def get_email_service() -> EmailService:
     template_manager = TemplateManager()
     return EmailService(template_manager=template_manager)
+
+def get_minio_service() -> MinioService:
+    return MinioService()
 
 async def get_db() -> AsyncSession:
     """Dependency that provides a database session for each request."""
