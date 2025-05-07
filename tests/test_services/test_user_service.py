@@ -20,6 +20,19 @@ async def test_create_user_with_valid_data(db_session, email_service):
     assert user is not None
     assert user.email == user_data["email"]
 
+# Test ADMIN for not sending email
+async def test_no_email_for_admin(db_session, email_service):
+    user_data = {
+        "nickname": generate_nickname(),
+        "email": "valid_user@example.com",
+        "password": "ValidPassword123!",
+        "role": UserRole.ADMIN
+    }
+    user = await UserService.create(db_session, user_data, email_service)
+    assert user is not None
+    assert user.email == user_data["email"]
+    email_service.send_verification_email.assert_not_awaited()
+
 # Test creating a user with invalid data
 async def test_create_user_with_invalid_data(db_session, email_service):
     user_data = {
