@@ -52,10 +52,18 @@ async def test_create_user_sends_verification_email(db_session, email_service):
         "password": "ValidPassword123!",
         "role": UserRole.ANONYMOUS.name
     }
-
+    user_data2 = {
+        "nickname": generate_nickname(),
+        "email": "valid_use2r@example.com",
+        "password": "ValidPassword123!",
+        "role": UserRole.ANONYMOUS.name
+    }
     user = await UserService.create(db_session, user_data, email_service)
     assert user is not None
-    email_service.send_verification_email.assert_awaited_once_with(user)
+    email_service.send_verification_email.assert_not_awaited() # admin
+    user2 = await UserService.create(db_session, user_data2, email_service)
+    assert user2 is not None
+    email_service.send_verification_email.assert_awaited_once_with(user2) # authenticated
 
 # Test fetching a user by ID when the user exists
 async def test_get_by_id_user_exists(db_session, user):
