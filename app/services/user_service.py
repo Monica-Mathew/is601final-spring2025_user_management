@@ -65,16 +65,19 @@ class UserService:
             new_user.nickname = new_nickname
             logger.info(f"User Role: {new_user.role}")
             user_count = await cls.count(session)
-            new_user.role = UserRole.ADMIN if user_count == 0 else UserRole.ANONYMOUS            
+            new_user.role = UserRole.ADMIN if user_count == 0 else UserRole.ANONYMOUS       
+            skipEmailVerification = False
             if new_user.role == UserRole.ADMIN:
                 new_user.email_verified = True
+                skipEmailVerification = True
             else:
                 new_user.verification_token = generate_verification_token()
 
             session.add(new_user)
             await session.commit()       
-            logger.info("User added to database")         
-            await email_service.send_verification_email(new_user)
+            logger.info("User added to database")
+            if not skipEmailVerification:      
+                await email_service.send_verification_email(new_user)
 
             return new_user
         except ValidationError as e:
