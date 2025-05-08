@@ -28,7 +28,6 @@ jobs:
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
       minio:
         image: minio/minio:latest
-        command: server /data --console-address ":9001"  # Starts the MinIO server and console on port 9001
         env:
           MINIO_ACCESS_KEY: minioadmin
           MINIO_SECRET_KEY: minioadmin
@@ -38,9 +37,6 @@ jobs:
         volumes:
           - minio-data:/data  # Mount volume for data persistence
         options: --health-cmd "curl --silent --fail http://localhost:9000/minio/health/ready" --health-interval 10s --health-timeout 5s --health-retries 5
-        # Ensure that the MinIO service is healthy before running tests
-        networks:
-          - app-network
     steps:
       - uses: actions/checkout@v4
       
