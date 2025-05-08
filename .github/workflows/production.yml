@@ -70,6 +70,11 @@ jobs:
           DATABASE_URL: postgresql+asyncpg://user:password@localhost:5432/myappdb  # Configure the DATABASE_URL environment variable for tests
         run: pytest
 
+      - name: Stop and remove MinIO # since we added it manually
+        if: always()
+        run: |
+          docker stop minio || true
+          docker rm minio || true
   build-and-push-docker:
     needs: test
     runs-on: ubuntu-latest
