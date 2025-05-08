@@ -39,7 +39,7 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
-        command: server /data 
+          --entrypoint "sh -c 'minio server /data'"
     steps:
       - uses: actions/checkout@v4
       
@@ -66,7 +66,7 @@ jobs:
           for i in {1..10}; do
             curl -f http://localhost:9000/minio/health/ready && break || sleep 3
           done
-              
+
       - name: Run tests with Pytest
         env:
           minio_host: "localhost:9000"  
