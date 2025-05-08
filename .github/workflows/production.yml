@@ -34,8 +34,6 @@ jobs:
         ports:
           - 9000:9000
           - 9001:9001  
-        options: --health-cmd="curl --silent --fail http://localhost:9000/minio/health/live"  # Health check using liveness probe
-
     steps:
       - uses: actions/checkout@v4
       
