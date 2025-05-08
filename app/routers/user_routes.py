@@ -247,11 +247,14 @@ async def verify_email(user_id: UUID, token: str, db: AsyncSession = Depends(get
         return {"message": "Email verified successfully"}
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired verification token")
 
-@router.post("/users/{user_id}/upload-profile-pic", status_code=status.HTTP_200_OK, name="upload_profile_pic", tags=["User Enhancement"])
-async def upload_profile_pic(user_id: UUID,  request: Request, file: UploadFile = File(...), db: AsyncSession = Depends(get_db), minio_service: MinioService = Depends(get_minio_service)):
+@router.post("/users/{user_id}/upload-profile-pic", status_code=status.HTTP_200_OK, name="upload_profile_pic", tags=["User Profile Enhancement (Authenticated Users)"])
+async def upload_profile_pic(user_id: UUID,  request: Request, file: UploadFile = File(...), db: AsyncSession = Depends(get_db), minio_service: MinioService = Depends(get_minio_service),token: str = Depends(oauth2_scheme), current_user: dict = Depends(require_role(["AUTHENTICATED","ADMIN", "MANAGER"]))):
     user = await UserService.get_by_id(db, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    
+    if current_user["user_id"] != str(user.email) and current_user["role"] not in ["ADMIN", "MANAGER"]:
+        raise HTTPException(status_code=403, detail="You can only update your own profile picture unless you're an admin or manager.")
     
     file_size = 0
     FIZE_SIZE_LIMIT = 1024 * 1024 * 5
