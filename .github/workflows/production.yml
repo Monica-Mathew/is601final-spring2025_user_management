@@ -59,9 +59,7 @@ jobs:
       - name: Run tests with Pytest
         env:
           DATABASE_URL: postgresql+asyncpg://user:password@localhost:5432/myappdb  # Configure the DATABASE_URL environment variable for tests
-          MINIO_ROOT_USER: minioadmin
-          MINIO_ROOT_PASSWORD: minioadmin
-          MINIO_URL: "http://minio:9000"  # Set the MinIO service URL to communicate with it in the test environment
+          MINIO_URL: "http://localhost:9000"  # Set the MinIO service URL to communicate with it in the test environment
 
         run: pytest
 
