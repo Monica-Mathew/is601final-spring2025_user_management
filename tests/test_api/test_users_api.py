@@ -31,7 +31,9 @@ async def test_retrieve_user_access_denied(async_client, verified_user, user_tok
     assert response.status_code == 403
 
 @pytest.mark.asyncio
-async def test_upload_profile_pic_success(async_client, verified_user, user_token, minio_service):
+async def test_upload_profile_pic_success(async_client, verified_user_with_token,minio_service):
+    verified_user, user_token = verified_user_with_token
+
     headers = {"Authorization": f"Bearer {user_token}"} # testing actual service - sanity check
 
     # Mock the response from the Minio service for successful upload
@@ -65,7 +67,8 @@ async def test_upload_profile_pic_success(async_client, verified_user, user_toke
     assert response_json["profile_picture_url"].endswith(".png")
 
 @pytest.mark.asyncio
-async def test_upload_profile_pic_invalid_file_type(async_client, verified_user, user_token):
+async def test_upload_profile_pic_invalid_file_type(async_client, verified_user_with_token):
+    verified_user, user_token = verified_user_with_token
     headers = {"Authorization": f"Bearer {user_token}"}
     file_data = {
         "filename": "test.txt",  
@@ -89,7 +92,9 @@ async def test_upload_profile_pic_invalid_file_type(async_client, verified_user,
     assert response_json["detail"] == "Invalid file type. Only JPEG, JPG or PNG are allowed. Please choose different file type"
 
 @pytest.mark.asyncio
-async def test_upload_profile_pic_file_size_limit(async_client, verified_user, user_token):    
+async def test_upload_profile_pic_file_size_limit(async_client, verified_user_with_token):   
+    verified_user, user_token = verified_user_with_token 
+    headers = {"Authorization": f"Bearer {user_token}"}
     file_data = {
         "filename": "large_image.png",
         "content_type": "image/png",
@@ -103,6 +108,7 @@ async def test_upload_profile_pic_file_size_limit(async_client, verified_user, u
 
     response = await async_client.post(
         f"/users/{verified_user.id}/upload-profile-pic",
+        headers=headers,
         files={"file": (file.filename, await file.read(), file.content_type)} 
     )
 
@@ -110,6 +116,56 @@ async def test_upload_profile_pic_file_size_limit(async_client, verified_user, u
     response_json = response.json()
     assert "detail" in response_json
     assert response_json["detail"] == "File size exceeds the limit of 5MB"
+
+@pytest.mark.asyncio
+async def test_user_cannot_upload_others_profile_pic(async_client, user, user_token, verified_user):
+    headers = {"Authorization": f"Bearer {user_token}"}
+
+    file_data = {
+        "filename": "unauthorized.png",
+        "content_type": "image/png",
+        "content": b"a" * 1024  # 1KB
+    }
+
+    file = MagicMock()
+    file.filename = file_data["filename"]
+    file.content_type = file_data["content_type"]
+    file.read = AsyncMock(return_value=file_data["content"])
+
+    response = await async_client.post(
+        f"/users/{verified_user.id}/upload-profile-pic",
+        headers=headers,
+        files={"file": (file.filename, await file.read(), file.content_type)},
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "You can only update your own profile picture unless you're an admin or manager."
+
+@pytest.mark.asyncio
+async def test_admin_can_upload_for_other_user(async_client, admin_token, verified_user):
+    headers = {"Authorization": f"Bearer {admin_token}"}
+
+    file_data = {
+        "filename": "admin_upload.png",
+        "content_type": "image/png",
+        "content": b"a" * 1024  # 1KB
+    }
+
+    file = MagicMock()
+    file.filename = file_data["filename"]
+    file.content_type = file_data["content_type"]
+    file.read = AsyncMock(return_value=file_data["content"])
+
+    response = await async_client.post(
+        f"/users/{verified_user.id}/upload-profile-pic",
+        headers=headers,
+        files={"file": (file.filename, await file.read(), file.content_type)},
+    )
+
+    assert response.status_code == 200
+    response_json = response.json()
+    assert "profile_picture_url" in response_json
+    assert response_json["profile_picture_url"].startswith("http://localhost:9001/")
 
 @pytest.mark.asyncio
 async def test_retrieve_user_access_allowed(async_client, admin_user, admin_token):
