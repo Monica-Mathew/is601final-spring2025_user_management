@@ -252,8 +252,10 @@ async def upload_profile_pic(user_id: UUID,  request: Request, file: UploadFile 
     user = await UserService.get_by_id(db, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
 
+    ALLOWED_CONTENT_TYPES = ["image/jpeg", "image/png", "image/jpg"]
+    if file.content_type not in ALLOWED_CONTENT_TYPES:
+        raise HTTPException(status_code=400,detail=f"Invalid file type. Only JPEG, JPG or PNG are allowed. Please choose different file type")
     profile_picture_url = await minio_service.upload_profile_picture(user, file, db)
 
     return {"profile_picture_url": profile_picture_url}
