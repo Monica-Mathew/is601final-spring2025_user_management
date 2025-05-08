@@ -42,7 +42,7 @@ async def test_upload_profile_pic_success(async_client, verified_user, user_toke
     file_data = {
         "filename": "test.png",
         "content_type": "image/png",
-        "content": b"dummy image data"
+        "content": b"a" * (1024 * 1024 * 5)
     }
 
     # Mock the file using a MagicMock
