@@ -27,7 +27,7 @@ jobs:
           - 5432:5432
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
       minio:
-        image: lazybit/minio
+        image: minio/minio
         env:
           MINIO_ROOT_USER: minioadmin
           MINIO_ROOT_PASSWORD: minioadmin
@@ -58,8 +58,8 @@ jobs:
           
       - name: Run tests with Pytest
         env:
+          minio_host: "http://localhost:9000"  
           DATABASE_URL: postgresql+asyncpg://user:password@localhost:5432/myappdb  # Configure the DATABASE_URL environment variable for tests
-          MINIO_URL: "http://localhost:9000"  # Set the MinIO service URL to communicate with it in the test environment
 
         run: pytest
 
