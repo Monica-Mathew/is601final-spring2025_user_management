@@ -34,7 +34,6 @@ jobs:
         ports:
           - 9000:9000
           - 9001:9001  
-        options: --health-cmd "curl --silent --fail http://localhost:9000/minio/health/live" --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
       - uses: actions/checkout@v4
       
@@ -60,7 +59,6 @@ jobs:
         env:
           minio_host: "http://localhost:9000"  
           DATABASE_URL: postgresql+asyncpg://user:password@localhost:5432/myappdb  # Configure the DATABASE_URL environment variable for tests
-
         run: pytest
 
   build-and-push-docker:
