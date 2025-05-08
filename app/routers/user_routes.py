@@ -252,9 +252,9 @@ async def upload_profile_pic(user_id: UUID,  request: Request, file: UploadFile 
     user = await UserService.get_by_id(db, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    
 
     profile_picture_url = await minio_service.upload_profile_picture(user, file, db)
-    # user.profile_picture_url = profile_picture_url
-    # await db.commit()
+
     return {"profile_picture_url": profile_picture_url}
 
