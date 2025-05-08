@@ -1,5 +1,7 @@
 # minio_service.py
+from http.client import HTTPException
 import io
+import logging
 import uuid
 from minio import Minio
 from settings.config import settings
@@ -7,6 +9,7 @@ from fastapi import UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.user_model import User
 
+logger = logging.getLogger(__name__)
 
 class MinioService:
     def __init__(self):
@@ -22,8 +25,9 @@ class MinioService:
         extension = file.filename.split('.')[-1]
         fileName = f"{uuid.uuid4()}.{extension}"
         content = await file.read()
-
+    
         if not self.minio_client.bucket_exists(self.bucket_name):
+            logger.info(f"Creating bucket: {self.bucket_name}")
             self.minio_client.make_bucket(self.bucket_name)
 
         self.minio_client.put_object(
@@ -33,6 +37,7 @@ class MinioService:
             length=len(content),
             content_type=file.content_type
         )
+        logger.info(f"Uploaded the image to minio server")
         profile_picture_url =f"{settings.minio_url}/{self.bucket_name}/{fileName}"
         user.profile_picture_url = profile_picture_url
         await session.commit()

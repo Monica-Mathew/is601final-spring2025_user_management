@@ -26,6 +26,7 @@ jobs:
         ports:
           - 5432:5432
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+
     steps:
       - uses: actions/checkout@v4
       
@@ -46,12 +47,34 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          
+
+      - name: Start MinIO manually
+        run: |
+          docker run -d \
+            -p 9000:9000 \
+            -p 9001:9001 \
+            --name minio \
+            -e MINIO_ROOT_USER=minioadmin \
+            -e MINIO_ROOT_PASSWORD=minioadmin \
+            minio/minio server /data
+
+      - name: Wait for MinIO to be ready
+        run: |
+          for i in {1..10}; do
+            curl -f http://localhost:9000/minio/health/ready && break || sleep 3
+          done
+
       - name: Run tests with Pytest
         env:
+          minio_host: "localhost:9000"  
           DATABASE_URL: postgresql+asyncpg://user:password@localhost:5432/myappdb  # Configure the DATABASE_URL environment variable for tests
         run: pytest
 
+      - name: Stop and remove MinIO # since we added it manually
+        if: always()
+        run: |
+          docker stop minio || true
+          docker rm minio || true
   build-and-push-docker:
     needs: test
     runs-on: ubuntu-latest

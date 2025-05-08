@@ -16,8 +16,9 @@ Fixtures:
 # Standard library imports
 from builtins import Exception, range, str
 from datetime import timedelta
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
+import uuid
 
 # Third-party imports
 import pytest
@@ -35,6 +36,7 @@ from app.dependencies import get_db, get_settings
 from app.utils.security import hash_password
 from app.utils.template_manager import TemplateManager
 from app.services.email_service import EmailService
+from app.services.minio_service import MinioService
 from app.services.jwt_service import create_access_token
 
 fake = Faker()
@@ -163,12 +165,12 @@ async def unverified_user(db_session):
 @pytest.fixture(scope="function")
 async def users_with_same_role_50_users(db_session):
     users = []
-    for _ in range(50):
+    for i in range(50):
         user_data = {
-            "nickname": fake.user_name(),
+            "nickname": f"user_{i+1}_{uuid4().hex[:6]}",
             "first_name": fake.first_name(),
             "last_name": fake.last_name(),
-            "email": fake.email(),
+            "email": f"user{i+1}_{uuid4().hex[:6]}@example.com",
             "hashed_password": fake.password(),
             "role": UserRole.AUTHENTICATED,
             "email_verified": False,
@@ -213,19 +215,41 @@ async def manager_user(db_session: AsyncSession):
 # Configure a fixture for each type of user role you want to test
 @pytest.fixture(scope="function")
 def admin_token(admin_user):
-    # Assuming admin_user has an 'id' and 'role' attribute
-    token_data = {"sub": str(admin_user.id), "role": admin_user.role.name}
+    # Assuming admin_user has an 'email' and 'role' attribute
+    token_data = {"sub": str(admin_user.email), "role": admin_user.role.name}
     return create_access_token(data=token_data, expires_delta=timedelta(minutes=30))
 
 @pytest.fixture(scope="function")
 def manager_token(manager_user):
-    token_data = {"sub": str(manager_user.id), "role": manager_user.role.name}
+    token_data = {"sub": str(manager_user.email), "role": manager_user.role.name}
     return create_access_token(data=token_data, expires_delta=timedelta(minutes=30))
 
 @pytest.fixture(scope="function")
 def user_token(user):
-    token_data = {"sub": str(user.id), "role": user.role.name}
+    token_data = {"sub": str(user.email), "role": user.role.name}
     return create_access_token(data=token_data, expires_delta=timedelta(minutes=30))
+
+@pytest.fixture(scope="function")
+async def verified_user_with_token(db_session):
+    """Fixture that returns a verified authenticated user and a matching JWT token."""
+    user_data = {
+        "nickname": "verified_user",
+        "first_name": "Verified",
+        "last_name": "User",
+        "email": "verified@example.com",
+        "hashed_password": hash_password("SecurePass123!"),
+        "role": UserRole.AUTHENTICATED,
+        "email_verified": True,
+        "is_locked": False,
+    }
+    user = User(**user_data)
+    db_session.add(user)
+    await db_session.commit()
+
+    token_data = {"sub": user.email, "role": user.role.name}
+    token = create_access_token(data=token_data, expires_delta=timedelta(minutes=30))
+
+    return user, token
 
 @pytest.fixture
 def email_service():
@@ -238,3 +262,27 @@ def email_service():
         mock_service.send_verification_email.return_value = None
         mock_service.send_user_email.return_value = None
         return mock_service
+
+@pytest.fixture
+def minio_service():
+    # Mock MinioService for unit testing
+    mock_service = AsyncMock(spec=MinioService)
+    
+    # Mock minio_client that is used within MinioService
+    mock_service.minio_client = MagicMock()
+    
+    # Mock the behavior of the methods on the minio_client
+    mock_service.minio_client.bucket_exists = AsyncMock(return_value=False)
+    mock_service.minio_client.make_bucket = AsyncMock(return_value=True)
+    mock_service.minio_client.put_object = AsyncMock()
+    mock_service.bucket_name = 'bucket-name'  
+
+    # Mock the upload_profile_picture method in MinioService
+    def mock_upload_profile_picture(user, file, session):
+        mocked_uuid = str(uuid.uuid4())  
+        url = f"http://mock-url.com/{mocked_uuid}.png"  
+        return url
+
+    mock_service.upload_profile_picture = AsyncMock(side_effect=mock_upload_profile_picture)
+    
+    return mock_service
