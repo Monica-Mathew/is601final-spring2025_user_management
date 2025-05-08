@@ -18,6 +18,7 @@ from builtins import Exception, range, str
 from datetime import timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
+import uuid
 
 # Third-party imports
 import pytest
@@ -36,7 +37,6 @@ from app.utils.security import hash_password
 from app.utils.template_manager import TemplateManager
 from app.services.email_service import EmailService
 from app.services.minio_service import MinioService
-
 from app.services.jwt_service import create_access_token
 
 fake = Faker()
@@ -55,18 +55,6 @@ def email_service():
     email_service = EmailService(template_manager=template_manager)
     return email_service
 
-@pytest.fixture
-def minio_service(monkeypatch):
-    # Mock MinIO client
-    mock_minio_client = MagicMock()
-    mock_minio_client.bucket_exists.return_value = False
-    mock_minio_client.make_bucket.return_value = None
-    mock_minio_client.put_object.return_value = None
-
-    # Patch MinioService to use mocked client
-    service = MinioService()
-    monkeypatch.setattr(service, "minio_client", mock_minio_client)
-    return service
 
 # this is what creates the http client for your api tests
 @pytest.fixture(scope="function")
@@ -252,3 +240,27 @@ def email_service():
         mock_service.send_verification_email.return_value = None
         mock_service.send_user_email.return_value = None
         return mock_service
+
+@pytest.fixture
+def minio_service():
+    # Mock MinioService for unit testing
+    mock_service = AsyncMock(spec=MinioService)
+    
+    # Mock minio_client that is used within MinioService
+    mock_service.minio_client = MagicMock()
+    
+    # Mock the behavior of the methods on the minio_client
+    mock_service.minio_client.bucket_exists = AsyncMock(return_value=False)
+    mock_service.minio_client.make_bucket = AsyncMock(return_value=True)
+    mock_service.minio_client.put_object = AsyncMock()
+    mock_service.bucket_name = 'bucket-name'  
+
+    # Mock the upload_profile_picture method in MinioService
+    def mock_upload_profile_picture(user, file, session):
+        mocked_uuid = str(uuid.uuid4())  
+        url = f"http://mock-url.com/{mocked_uuid}.png"  
+        return url
+
+    mock_service.upload_profile_picture = AsyncMock(side_effect=mock_upload_profile_picture)
+    
+    return mock_service
