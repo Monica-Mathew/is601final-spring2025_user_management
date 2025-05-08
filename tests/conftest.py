@@ -16,7 +16,7 @@ Fixtures:
 # Standard library imports
 from builtins import Exception, range, str
 from datetime import timedelta
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 # Third-party imports
@@ -35,6 +35,8 @@ from app.dependencies import get_db, get_settings
 from app.utils.security import hash_password
 from app.utils.template_manager import TemplateManager
 from app.services.email_service import EmailService
+from app.services.minio_service import MinioService
+
 from app.services.jwt_service import create_access_token
 
 fake = Faker()
@@ -53,6 +55,18 @@ def email_service():
     email_service = EmailService(template_manager=template_manager)
     return email_service
 
+@pytest.fixture
+def minio_service(monkeypatch):
+    # Mock MinIO client
+    mock_minio_client = MagicMock()
+    mock_minio_client.bucket_exists.return_value = False
+    mock_minio_client.make_bucket.return_value = None
+    mock_minio_client.put_object.return_value = None
+
+    # Patch MinioService to use mocked client
+    service = MinioService()
+    monkeypatch.setattr(service, "minio_client", mock_minio_client)
+    return service
 
 # this is what creates the http client for your api tests
 @pytest.fixture(scope="function")
