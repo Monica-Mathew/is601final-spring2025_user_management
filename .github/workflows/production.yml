@@ -26,6 +26,16 @@ jobs:
         ports:
           - 5432:5432
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+      minio:
+        image: minio/minio:latest
+        env:
+          MINIO_ACCESS_KEY: minioadmin
+          MINIO_SECRET_KEY: minioadmin
+          MINIO_BUCKET: profile-pics  # You can set the bucket name if required
+        ports:
+          - 9000:9000
+        options: --health-cmd "curl --silent --fail http://localhost:9000/minio/health/ready" --health-interval 10s --health-timeout 5s --health-retries 5
+        # Ensure that the MinIO service is healthy before running tests
     steps:
       - uses: actions/checkout@v4
       
@@ -50,6 +60,8 @@ jobs:
       - name: Run tests with Pytest
         env:
           DATABASE_URL: postgresql+asyncpg://user:password@localhost:5432/myappdb  # Configure the DATABASE_URL environment variable for tests
+          MINIO_URL: "http://minio:9000"  # Set the MinIO service URL to communicate with it in the test environment
+
         run: pytest
 
   build-and-push-docker:
