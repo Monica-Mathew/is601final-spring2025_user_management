@@ -42,7 +42,7 @@ async def test_upload_profile_pic_success(async_client, verified_user, user_toke
     file_data = {
         "filename": "test.png",
         "content_type": "image/png",
-        "content": b"dummy image data"
+        "content": b"a" * (1024 * 1024 * 5)
     }
 
     # Mock the file using a MagicMock
@@ -87,6 +87,29 @@ async def test_upload_profile_pic_invalid_file_type(async_client, verified_user,
     response_json = response.json()
     assert "detail" in response_json
     assert response_json["detail"] == "Invalid file type. Only JPEG, JPG or PNG are allowed. Please choose different file type"
+
+@pytest.mark.asyncio
+async def test_upload_profile_pic_file_size_limit(async_client, verified_user, user_token):    
+    file_data = {
+        "filename": "large_image.png",
+        "content_type": "image/png",
+        "content": b"a" * (1024 * 1024 * 6)
+    }
+
+    file = MagicMock()
+    file.filename = file_data["filename"]
+    file.content_type = file_data["content_type"]
+    file.read = AsyncMock(return_value=file_data["content"])
+
+    response = await async_client.post(
+        f"/users/{verified_user.id}/upload-profile-pic",
+        files={"file": (file.filename, await file.read(), file.content_type)} 
+    )
+
+    assert response.status_code == 400
+    response_json = response.json()
+    assert "detail" in response_json
+    assert response_json["detail"] == "File size exceeds the limit of 5MB"
 
 @pytest.mark.asyncio
 async def test_retrieve_user_access_allowed(async_client, admin_user, admin_token):

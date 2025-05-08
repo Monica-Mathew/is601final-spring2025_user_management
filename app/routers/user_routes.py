@@ -252,6 +252,14 @@ async def upload_profile_pic(user_id: UUID,  request: Request, file: UploadFile 
     user = await UserService.get_by_id(db, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    
+    file_size = 0
+    FIZE_SIZE_LIMIT = 1024 * 1024 * 5
+    file_size = len(await file.read()) 
+    print(f'Monica file size {file_size}')
+ 
+    if file_size > FIZE_SIZE_LIMIT:
+        raise HTTPException(status_code=400, detail="File size exceeds the limit of 5MB")
 
     ALLOWED_CONTENT_TYPES = ["image/jpeg", "image/png", "image/jpg"]
     if file.content_type not in ALLOWED_CONTENT_TYPES:
