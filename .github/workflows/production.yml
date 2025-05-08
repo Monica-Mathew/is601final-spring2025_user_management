@@ -57,7 +57,7 @@ jobs:
           
       - name: Run tests with Pytest
         env:
-          minio_host: "localhost:9000"  
+          # minio_host: "localhost:9000"  
           DATABASE_URL: postgresql+asyncpg://user:password@localhost:5432/myappdb  # Configure the DATABASE_URL environment variable for tests
         run: pytest
 
