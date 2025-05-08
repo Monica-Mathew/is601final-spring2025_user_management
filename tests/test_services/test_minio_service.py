@@ -10,14 +10,14 @@ async def test_upload_picture_sets_user_url(minio_service, db_session):
     user = User(id="123", email="user@example.com")
     
     file = MagicMock()
-    file.filename = "avatar.png"
+    file.filename = "sample.png"
     file.content_type = "image/png"
     file.read = AsyncMock(return_value=b"dummy image data")
     
     url = await minio_service.upload_profile_picture(user, file, db_session)
     
     assert user.profile_picture_url == url
-    assert "avatar.png" not in url  # should be a UUID name
+    assert "sample.png" not in url  # should be a UUID name
     assert url.startswith("http://")
     assert url.endswith(".png")
 
