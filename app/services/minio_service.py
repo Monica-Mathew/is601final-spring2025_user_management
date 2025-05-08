@@ -23,10 +23,6 @@ class MinioService:
         extension = file.filename.split('.')[-1]
         fileName = f"{uuid.uuid4()}.{extension}"
         content = await file.read()
-
-        ALLOWED_CONTENT_TYPES = ["image/jpeg", "image/png", "image/jpg"]
-        if file.content_type not in ALLOWED_CONTENT_TYPES:
-            raise HTTPException(status_code=400,detail=f"Invalid file type. Only JPEG, JPG or PNG are allowed. Please choose different file type")
     
         if not self.minio_client.bucket_exists(self.bucket_name):
             self.minio_client.make_bucket(self.bucket_name)
