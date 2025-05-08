@@ -26,20 +26,7 @@ jobs:
         ports:
           - 5432:5432
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-      minio:
-        image: minio/minio
-        env:
-          MINIO_ROOT_USER: minioadmin
-          MINIO_ROOT_PASSWORD: minioadmin
-        ports:
-          - 9000:9000
-          - 9001:9001
-        options: >-
-          --health-cmd="curl -f http://localhost:9000/minio/health/ready || exit 1"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-          --entrypoint "sh -c 'minio server /data'"
+
     steps:
       - uses: actions/checkout@v4
       
@@ -60,6 +47,16 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+
+      - name: Start MinIO manually
+        run: |
+          docker run -d \
+            -p 9000:9000 \
+            -p 9001:9001 \
+            --name minio \
+            -e MINIO_ROOT_USER=minioadmin \
+            -e MINIO_ROOT_PASSWORD=minioadmin \
+            minio/minio server /data
 
       - name: Wait for MinIO to be ready
         run: |
