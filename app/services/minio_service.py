@@ -1,4 +1,5 @@
 # minio_service.py
+from http.client import HTTPException
 import io
 import uuid
 from minio import Minio
@@ -22,7 +23,7 @@ class MinioService:
         extension = file.filename.split('.')[-1]
         fileName = f"{uuid.uuid4()}.{extension}"
         content = await file.read()
-
+    
         if not self.minio_client.bucket_exists(self.bucket_name):
             self.minio_client.make_bucket(self.bucket_name)
 

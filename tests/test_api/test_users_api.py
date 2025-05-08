@@ -1,4 +1,5 @@
 from builtins import str
+from unittest.mock import MagicMock, AsyncMock
 import pytest
 from httpx import AsyncClient
 from app.main import app
@@ -28,6 +29,64 @@ async def test_retrieve_user_access_denied(async_client, verified_user, user_tok
     headers = {"Authorization": f"Bearer {user_token}"}
     response = await async_client.get(f"/users/{verified_user.id}", headers=headers)
     assert response.status_code == 403
+
+@pytest.mark.asyncio
+async def test_upload_profile_pic_success(async_client, verified_user, user_token, minio_service):
+    headers = {"Authorization": f"Bearer {user_token}"} # testing actual service - sanity check
+
+    # Mock the response from the Minio service for successful upload
+    profile_picture_url = "http://mock-url.com/uuid.png"
+    minio_service.upload_profile_picture = AsyncMock(return_value=profile_picture_url)
+
+    # Prepare a dummy file to upload
+    file_data = {
+        "filename": "test.png",
+        "content_type": "image/png",
+        "content": b"dummy image data"
+    }
+
+    # Mock the file using a MagicMock
+    file = MagicMock()
+    file.filename = file_data["filename"]
+    file.content_type = file_data["content_type"]
+    file.read = AsyncMock(return_value=file_data["content"])
+
+    # Send the file via a POST request to upload (await file.read())
+    response = await async_client.post(
+        f"/users/{verified_user.id}/upload-profile-pic", 
+        headers=headers,
+        files={"file": (file.filename, await file.read(), file.content_type)}  # Await file.read() here
+    )
+    assert response.status_code == 200
+    response_json = response.json()
+
+    assert "profile_picture_url" in response_json
+    assert response_json["profile_picture_url"].startswith("http://localhost:9001/browser")
+    assert response_json["profile_picture_url"].endswith(".png")
+
+@pytest.mark.asyncio
+async def test_upload_profile_pic_invalid_file_type(async_client, verified_user, user_token):
+    headers = {"Authorization": f"Bearer {user_token}"}
+    file_data = {
+        "filename": "test.txt",  
+        "content_type": "text/plain",  
+        "content": b"dummy text data"
+    }
+    file = MagicMock()
+    file.filename = file_data["filename"]
+    file.content_type = file_data["content_type"]
+    file.read = AsyncMock(return_value=file_data["content"])
+
+    response = await async_client.post(
+        f"/users/{verified_user.id}/upload-profile-pic",
+        headers=headers,
+        files={"file": (file.filename, await file.read(), file.content_type)}  # Await file.read() here
+    )
+    
+    assert response.status_code == 400
+    response_json = response.json()
+    assert "detail" in response_json
+    assert response_json["detail"] == "Invalid file type. Only JPEG, JPG or PNG are allowed. Please choose different file type"
 
 @pytest.mark.asyncio
 async def test_retrieve_user_access_allowed(async_client, admin_user, admin_token):
