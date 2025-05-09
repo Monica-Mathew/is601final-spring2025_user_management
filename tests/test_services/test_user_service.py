@@ -107,8 +107,30 @@ async def test_update_user_valid_data(db_session, user):
 
 # Test updating a user with invalid data
 async def test_update_user_invalid_data(db_session, user):
-    updated_user = await UserService.update(db_session, user.id, {"email": "invalidemail"})
-    assert updated_user is None
+    with pytest.raises(HTTPException) as excinfo:
+        await UserService.update(db_session, user.id, {"email": "invalidemail"})
+    
+    assert excinfo.value.status_code == 400
+    assert "value is not a valid email address" in excinfo.value.detail
+
+@pytest.mark.asyncio
+async def test_update_with_null_values(db_session, user):
+    data = {
+        "bio": None,
+        "profile_picture_url": 'https://linkedin.com/in/johndoe'
+    }
+    updated_user = await UserService.update(db_session, user.id, data)
+    assert updated_user is not None
+    assert updated_user.bio is None
+    assert updated_user.profile_picture_url is not None
+
+@pytest.mark.asyncio
+async def test_update_with_no_profile_fields(db_session, user):
+    updated_user = await UserService.update(db_session, user.id, {"first_name": "UpdatedOnly"})
+    assert updated_user is not None
+    assert updated_user.first_name == "UpdatedOnly"
+    assert updated_user.bio == user.bio
+    assert updated_user.profile_picture_url == user.profile_picture_url
 
 # Test deleting a user who exists
 async def test_delete_user_exists(db_session, user):
