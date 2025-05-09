@@ -1,5 +1,6 @@
 from builtins import Exception, bool, classmethod, int, str
 from datetime import datetime, timezone
+from fastapi import HTTPException
 import secrets
 from typing import Optional, Dict, List
 from pydantic import ValidationError
@@ -102,6 +103,9 @@ class UserService:
             else:
                 logger.error(f"User {user_id} not found after update attempt.")
             return None
+        except ValidationError as e:
+            logger.warning(f"Validation error during update: {e}")
+            raise HTTPException(status_code=400, detail=e.errors()[0]['msg']) 
         except Exception as e:  # Broad exception handling for debugging
             logger.error(f"Error during user update: {e}")
             return None

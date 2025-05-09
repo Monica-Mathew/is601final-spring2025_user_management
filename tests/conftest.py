@@ -281,6 +281,7 @@ def minio_service():
     def mock_upload_profile_picture(user, file, session):
         mocked_uuid = str(uuid.uuid4())  
         url = f"http://mock-url.com/{mocked_uuid}.png"  
+        user.profile_picture_url = url  # simulate the side effect
         return url
 
     mock_service.upload_profile_picture = AsyncMock(side_effect=mock_upload_profile_picture)

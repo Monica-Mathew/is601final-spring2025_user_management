@@ -7,6 +7,7 @@ from app.models.user_model import User, UserRole
 from app.utils.nickname_gen import generate_nickname
 from app.utils.security import hash_password
 from app.services.jwt_service import decode_token  # Import your FastAPI app
+from unittest.mock import patch
 
 # Example of a test function using the async_client fixture
 @pytest.mark.asyncio
@@ -328,4 +329,35 @@ async def test_list_users_unauthorized(async_client, user_token):
         headers={"Authorization": f"Bearer {user_token}"}
     )
     assert response.status_code == 403  # Forbidden, as expected for regular user
-#TODO add here
+
+@pytest.mark.asyncio
+async def test_create_user_invalid_password(async_client):
+    # Invalid password (too short and missing complexity)
+    user_data = {
+        "nickname": generate_nickname(),
+        "email": "valid_user45@example.com",
+        "password": "Short",
+        "role": UserRole.AUTHENTICATED.name
+    }
+    response = await async_client.post("/register/", json=user_data)
+    assert response.status_code == 422  # Expecting validation error
+    assert "detail" in response.json()
+    assert "Password must be at least 8 characters long" in response.json()["detail"][0]["msg"]
+
+@pytest.mark.asyncio
+@patch("app.services.email_service.EmailService.send_verification_email")
+async def test_create_user_valid_password(mock_send_email, async_client):
+    # Mock the send email function to prevent real SMTP call
+    mock_send_email.return_value = None
+
+    user_data = {
+        "nickname": generate_nickname(),
+        "email": "valid_user45@example.com",
+        "password": "ValidPassword123!",
+        "role": UserRole.AUTHENTICATED.name
+    }
+    response = await async_client.post("/register/", json=user_data)
+
+    assert response.status_code == 200
+    assert "email" in response.json()
+    assert response.json()["email"] == user_data["email"]
