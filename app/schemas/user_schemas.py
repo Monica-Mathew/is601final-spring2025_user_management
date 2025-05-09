@@ -33,9 +33,20 @@ class UserBase(BaseModel):
     class Config:
         from_attributes = True
 
+
+def validate_password_complexity(password: str):
+    password_pattern = r"^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*(),.?\":{}|<>]).{8,}$"  # Regex pattern for password
+    if not re.match(password_pattern, password):
+        raise ValueError(
+            "Password must be at least 8 characters long, contain at least one uppercase letter, "
+            "one lowercase letter, one number, and one special character."
+        )
+    return password
+
 class UserCreate(UserBase):
     email: EmailStr = Field(..., example="john.doe@example.com")
     password: str = Field(..., example="Secure*1234")
+    _validate_password = validator('password', pre=True, allow_reuse=True)(validate_password_complexity)
 
 class UserUpdate(UserBase):
     email: Optional[EmailStr] = Field(None, example="john.doe@example.com")
