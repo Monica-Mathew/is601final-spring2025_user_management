@@ -1,4 +1,5 @@
 from builtins import range
+from fastapi import HTTPException
 from unittest.mock import MagicMock, AsyncMock
 import pytest
 from sqlalchemy import select
@@ -114,6 +115,16 @@ async def test_delete_user_exists(db_session, user):
     deletion_success = await UserService.delete(db_session, user.id)
     assert deletion_success is True
 
+
+@pytest.mark.asyncio
+async def test_update_with_no_fields_fails(db_session, user):
+    data = {}
+    with pytest.raises(HTTPException) as excinfo:
+        await UserService.update(db_session, user.id, data)
+
+    assert excinfo.value.status_code == 400
+    assert "At least one field must be provided for update" in excinfo.value.detail
+    
 # Test attempting to delete a user who does not exist
 async def test_delete_user_does_not_exist(db_session):
     non_existent_user_id = "non-existent-id"
